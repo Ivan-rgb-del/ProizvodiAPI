@@ -93,6 +93,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // SQL Server u kontejneru treba vremena da se podigne, pa pokušavamo nekoliko puta
+    for (var pokusaj = 1; pokusaj <= 10; pokusaj++)
+    {
+        try
+        {
+            db.Database.Migrate();
+            break;
+        }
+        catch (Exception ex) when (pokusaj < 10)
+        {
+            app.Logger.LogWarning("Baza još nije spremna (pokušaj {Pokusaj}): {Poruka}", pokusaj, ex.Message);
+            Thread.Sleep(3000);
+        }
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

@@ -400,3 +400,6 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 Logs/
+
+# Local secrets (docker compose)
+.env
