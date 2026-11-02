@@ -1,17 +1,21 @@
 ﻿# ProizvodiAPI
 
+![CI](https://github.com/Ivan-rgb-del/ProizvodiAPI/actions/workflows/ci.yml/badge.svg)
+
 REST API za upravljanje proizvodima, napravljen u ASP.NET Core 8. Podržava CRUD operacije, JWT autentikaciju sa ulogama i čuva podatke u SQL Server bazi. Projekat je rađen kao vežba Clean Architecture, CQRS i testiranja.
 
 ## Tehnologije
 
 - ASP.NET Core 8 (Web API, Controllers)
-- Entity Framework Core + SQL Server (LocalDB)
+- Entity Framework Core + SQL Server (LocalDB lokalno, kontejner u Dockeru)
 - JWT autentikacija (uloge Admin i Korisnik)
 - MediatR (CQRS: Query i Command handleri)
 - FluentValidation
 - Serilog (logovi u konzolu i fajl)
 - Swagger / OpenAPI
-- xUnit + Moq (unit testovi)
+- xUnit + Moq (unit testovi), WebApplicationFactory (integration testovi)
+- Docker i Docker Compose
+- GitHub Actions (CI)
 
 ## Arhitektura
 
@@ -28,35 +32,52 @@ ProizvodiAPI/
 
 ## Pokretanje
 
-### Preduslovi
-
-- .NET 8 SDK
-- SQL Server LocalDB (dolazi uz Visual Studio)
-
-### Koraci
-
-1. Kloniraj repozitorijum i uđi u folder projekta:
 ```
-   git clone <URL-repozitorijuma>
-   cd ProizvodiAPI/ProizvodiAPI
+git clone https://github.com/Ivan-rgb-del/ProizvodiAPI.git
+cd ProizvodiAPI
 ```
 
-2. Podesi tajni JWT ključ (najmanje 32 karaktera). Ključ nije u repozitorijumu:
-```
+### Opcija 1: Docker (preporučeno)
+
+Potreban je samo Docker Desktop.
+
+1. Kopiraj `.env.example` u `.env` i upiši svoje vrednosti
+   (`JWT_KEY` mora imati najmanje 32 karaktera, a `DB_PASSWORD` mora biti jaka lozinka za SQL Server):
+   ```
+   copy .env.example .env
+   ```
+2. Pokreni API i bazu:
+   ```
+   docker compose up --build
+   ```
+3. Swagger: http://localhost:8080/swagger
+
+Migracije se primenjuju automatski pri startu, a podaci se čuvaju u Docker volume-u `sqldata`.
+Zaustavljanje: `docker compose down` (dodaj `-v` ako želiš da obrišeš i bazu).
+
+### Opcija 2: lokalno (.NET 8 SDK + LocalDB)
+
+Preduslovi: .NET 8 SDK i SQL Server LocalDB (dolazi uz Visual Studio).
+Za migracije je potreban alat `dotnet-ef`: `dotnet tool install --global dotnet-ef`.
+
+1. Uđi u folder projekta:
+   ```
+   cd ProizvodiAPI
+   ```
+2. Podesi tajni JWT ključ (najmanje 32 karaktera, ključ nije u repozitorijumu):
+   ```
    dotnet user-secrets init
-   dotnet user-secrets set "Jwt:Key" "tvoj-sopstveni-dugacak-tajni-kljuc-od-32+-karaktera"
-```
-
+   dotnet user-secrets set "Jwt:Key" "tvoj-kljuc-od-najmanje-32-karaktera"
+   ```
 3. Napravi bazu primenom migracija:
-```
+   ```
    dotnet ef database update
-```
-   (ili `Update-Database` u Package Manager Console u Visual Studiju)
-
+   ```
 4. Pokreni aplikaciju:
-```
+   ```
    dotnet run
-```
+   ```
+5. Swagger je na adresi koju ispiše `dotnet run` (nastavak `/swagger`).
 
 ## Autentikacija
 
@@ -85,9 +106,17 @@ Poslovno pravilo: proizvod koji je na stanju (količina veća od 0) ne može se 
 
 ## Testovi
 
+- Unit testovi (xUnit i Moq): handleri izolovano
+- Integration testovi (`WebApplicationFactory` i SQLite in-memory): HTTP zahtevi kroz celu aplikaciju,
+  uključujući `401`, `403`, `409`, `400` i `204`
+
 ```
 dotnet test
 ```
+
+## CI
+
+GitHub Actions pri svakom push-u i pull request-u radi restore, build, testove i Docker build.
 
 ## Logovi
 
